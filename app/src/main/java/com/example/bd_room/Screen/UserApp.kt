@@ -1,150 +1,197 @@
 package com.example.bd_room.Screen
 
 import android.widget.Toast
-import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.text.KeyboardOptions
-import androidx.compose.material3.Button
-import androidx.compose.material3.Text
-import androidx.compose.material3.TextField
-import androidx.compose.runtime.Composable
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.rememberCoroutineScope
-import androidx.compose.runtime.setValue
+import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.items
+import androidx.compose.material3.*
+import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
-import com.example.bd_room.DAO.UserDao
+import androidx.compose.foundation.text.KeyboardOptions
 import com.example.bd_room.Model.User
 import com.example.bd_room.Repository.UserRepository
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun UserApp(userRepository: UserRepository){
+fun UserApp(userRepository: UserRepository) {
     var nombre by remember { mutableStateOf("") }
     var apellido by remember { mutableStateOf("") }
     var edad by remember { mutableStateOf("") }
     var id by remember { mutableStateOf("") }
+    var users by remember { mutableStateOf(listOf<User>()) }
     var scope = rememberCoroutineScope()
-
     var context = LocalContext.current
+    var selectedUserId by remember { mutableStateOf<Int?>(null) }
+    var userIds by remember { mutableStateOf(listOf<Int>()) }
 
-    Column(
-        modifier = Modifier
-            .padding(16.dp)
-            .fillMaxSize()
-    ) {
-        TextField(
-            value = nombre,
-            onValueChange = { nombre = it },
-            label = { Text(text = "nombre") },
-        )
-        Spacer(modifier = Modifier.height(8.dp))
-        TextField(
-            value = apellido,
-            onValueChange = { apellido = it },
-            label = { Text(text = "apellido") }
-        )
-        Spacer(modifier = Modifier.height(8.dp))
-        TextField(
-            value = edad,
-            onValueChange = { edad = it },
-            label = { Text(text = "Edad") },
-            keyboardOptions = KeyboardOptions.Default.copy(keyboardType = KeyboardType.Number)
-        )
-        Spacer(modifier = Modifier.height(8.dp))
-        Button(
-            onClick = {
-                val user = User(
-                    nombre = nombre,
-                    apellido = apellido,
-                    edad = edad.toIntOrNull() ?: 0
+    Scaffold(
+        topBar = {
+            TopAppBar(
+                title = { Text("Kloting App") },
+                colors = TopAppBarDefaults.smallTopAppBarColors(
+                    containerColor = MaterialTheme.colorScheme.primaryContainer,
+                    titleContentColor = MaterialTheme.colorScheme.onPrimaryContainer,
                 )
-                scope.launch {
-                    withContext(Dispatchers.IO) {
-                        userRepository.insertar(user)
-                    }
-                    Toast.makeText(context,"Usuario Registrado", Toast.LENGTH_SHORT).show()
-                }
-            }) {
-            Text(text = "Registrar")
+            )
         }
-
-        Spacer(modifier = Modifier.height(16.dp))
-
-        var users by remember { mutableStateOf(listOf<User>()) }
-
-        Button(
-            onClick = {
-                scope.launch{
-                    users = withContext(Dispatchers.IO){
-                        userRepository.getAllUsers()
-                    }
-                }
-            }
-        ){
-            Text("listar")
-        }
-
-        Spacer(modifier = Modifier.height(16.dp))
-
-        Column {
-            users.forEach{ user->
-                Text("${user.id} ${user.nombre} ${user.apellido} ${user.edad} ")
-                Spacer(modifier = Modifier.height(4.dp))
-            }
-        }
-        Button(
-            onClick = {
-                if (users.isNotEmpty()) {
-                    val userToDelete = users.last()
-                    scope.launch {
-                        withContext(Dispatchers.IO) {
-                            userRepository.eliminar(userToDelete)
-                        }
-                        users = users - userToDelete
-                        Toast.makeText(context, "Usuario Eliminado", Toast.LENGTH_SHORT).show()
-                    }
-                }
-            }
+    ) { innerPadding ->
+        LazyColumn(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(innerPadding)
+                .padding(16.dp),
+            verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
-            Text("Eliminar Último Usuario")
-        }
-        Spacer(modifier = Modifier.height(8.dp))
-        TextField(
-            value = id,
-            onValueChange = { id = it },
-            label = { Text(text = "ID") },
-            keyboardOptions = KeyboardOptions.Default.copy(keyboardType = KeyboardType.Number)
-        )
-        Spacer(modifier = Modifier.height(8.dp))
-        Button(
-            onClick = {
-                val user = User(
-                    id = id.toIntOrNull() ?: 0,
-                    nombre = nombre,
-                    apellido = apellido,
-                    edad = edad.toIntOrNull() ?: 0
+            item {
+                OutlinedTextField(
+                    value = nombre,
+                    onValueChange = { nombre = it },
+                    label = { Text("Nombre") },
+                    modifier = Modifier.fillMaxWidth()
                 )
-                scope.launch {
-                    withContext(Dispatchers.IO) {
-                        userRepository.actualizar(user)
-                        users = userRepository.getAllUsers()
+            }
+            item {
+                OutlinedTextField(
+                    value = apellido,
+                    onValueChange = { apellido = it },
+                    label = { Text("Apellido") },
+                    modifier = Modifier.fillMaxWidth()
+                )
+            }
+            item {
+                OutlinedTextField(
+                    value = edad,
+                    onValueChange = { edad = it },
+                    label = { Text("Edad") },
+                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                    modifier = Modifier.fillMaxWidth()
+                )
+            }
+            item {
+                OutlinedTextField(
+                    value = id,
+                    onValueChange = { id = it },
+                    label = { Text("ID (para actualizar/eliminar)") },
+                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                    modifier = Modifier.fillMaxWidth()
+                )
+            }
+
+            item {
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween
+                ) {
+                    Button(
+                        onClick = {
+                            if (nombre.isNotBlank() && apellido.isNotBlank() && edad.isNotBlank() && (edad.toIntOrNull() ?: -1) >= 0) {
+                                val user = User(
+                                    nombre = nombre,
+                                    apellido = apellido,
+                                    edad = edad.toIntOrNull() ?: 0
+                                )
+                                scope.launch {
+                                    withContext(Dispatchers.IO) {
+                                        userRepository.insertar(user)
+                                        users = userRepository.getAllUsers()
+                                        userRepository.getAllUsers()
+
+                                    }
+                                    Toast.makeText(context, "Usuario Registrado", Toast.LENGTH_SHORT).show()
+                                }
+                            } else {
+                                Toast.makeText(context, "Todos los campos son obligatorios", Toast.LENGTH_SHORT).show()
+                            }
+                        }
+                    ) {
+                        Text("Registrar")
                     }
-                    Toast.makeText(context, "Usuario Actualizado", Toast.LENGTH_SHORT).show()
+                    Button(
+                        onClick = {
+                            scope.launch {
+                                users = withContext(Dispatchers.IO) {
+                                    userRepository.getAllUsers()
+
+                                }
+                            }
+                        }
+                    ) {
+                        Text("Listar")
+                    }
                 }
-            }) {
-            Text(text = "Actualizar")
+            }
+            item {
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween
+                ) {
+                    Button(
+                        onClick = {
+                            val userIdToDelete = id.toIntOrNull()
+                            if (userIdToDelete != null) {
+                                scope.launch {
+                                    withContext(Dispatchers.IO) {
+                                        val userToDelete = users.find { it.id == userIdToDelete }
+                                        if (userToDelete != null) {
+                                            userRepository.eliminar(userToDelete)
+                                            users = userRepository.getAllUsers()
+                                        }
+                                    }
+                                    Toast.makeText(context, "Usuario Eliminado", Toast.LENGTH_SHORT).show()
+                                }
+                            } else {
+                                Toast.makeText(context, "ID inválido", Toast.LENGTH_SHORT).show()
+                            }
+                        }
+                    ) {
+                        Text("Eliminar")
+                    }
+                    Button(
+                        onClick = {
+                            if (nombre.isNotBlank() && apellido.isNotBlank() && edad.isNotBlank() && id.isNotBlank()) {
+                                val user = User(
+                                    id = id.toIntOrNull() ?: 0,
+                                    nombre = nombre,
+                                    apellido = apellido,
+                                    edad = edad.toIntOrNull() ?: 0
+                                )
+                                scope.launch {
+                                    withContext(Dispatchers.IO) {
+                                        userRepository.actualizar(user)
+                                        users = userRepository.getAllUsers()
+                                    }
+                                    Toast.makeText(context, "Usuario Actualizado", Toast.LENGTH_SHORT).show()
+                                }
+                            } else {
+                                Toast.makeText(context, "Todos los campos son obligatorios", Toast.LENGTH_SHORT).show()
+                            }
+                        }
+                    ) {
+                        Text("Actualizar")
+                    }
+                }
+            }
+            items(users) { user ->
+                Card(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(vertical = 8.dp),
+                    elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
+                ) {
+                    Column(modifier = Modifier.padding(16.dp)) {
+                        Text("ID: ${user.id}", style = MaterialTheme.typography.bodyMedium)
+                        Text("${user.nombre} ${user.apellido}", style = MaterialTheme.typography.titleMedium)
+                        Text("Edad: ${user.edad}", style = MaterialTheme.typography.bodyMedium)
+                    }
+                }
+            }
         }
     }
 }
